@@ -105,7 +105,7 @@ struct ContentView: View {
                 Button(action: {
                     fetchFluxs()
                 }) {
-                    Image(systemName: "goforward")
+                    Image(systemName: "arrow.2.circlepath")
                 }
             }
         }
