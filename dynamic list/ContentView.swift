@@ -101,6 +101,13 @@ struct ContentView: View {
                 }
             }
             .navigationBarTitle(Text("Flux"), displayMode: .automatic)
+            .toolbar {
+                Button(action: {
+                    fetchFluxs()
+                }) {
+                    Image(systemName: "goforward")
+                }
+            }
         }
         .onAppear(perform: {
             fetchFluxs()
