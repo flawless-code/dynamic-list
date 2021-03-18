@@ -30,8 +30,8 @@ struct Flux: Codable, Hashable {
     
     enum CodingKeys: String, CodingKey {
         case timeTag = "time_tag"
-        case frequency // = "frequency"
-        case flux // = "flux"
+        case frequency = "frequency"
+        case flux = "flux"
         case reportingSchedule = "reporting_schedule"
         case avgBeginDate = "avg_begin_date"
         case ninetyDayMean = "ninety_day_mean"
@@ -47,55 +47,64 @@ struct ContentView: View {
     @State private var fluxs = [Flux]()
     @State private var errorMessage: String = ""
     @State private var showAlert: Bool = false
+    @State private var showLoading: Bool = true
     
     var body: some View {
         NavigationView {
-            List(fluxs, id: \.self) { flux in
-                VStack(alignment: .leading, spacing: 5) {
-                    if let timeTag = flux.timeTag {
-                        Text("Time tag: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(dateFormatter.string(from: timeTag))")
-                    }
-                    if let frequency = flux.frequency {
-                        Text("Frequency: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(frequency)")
-                    }
-                    if let fluxValue = flux.flux {
-                        Text("Flux: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(fluxValue)")
-                    }
-                    if let reportingSchedule = flux.reportingSchedule {
-                        Text("Reporting schedule: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(reportingSchedule)")
-                    }
-                    if let avgBeginDate = flux.avgBeginDate {
-                        Text("Average begin date: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(dateFormatter.string(from: avgBeginDate))")
-                    }
-                    if let ninetyDayMean = flux.ninetyDayMean {
-                        Text("Ninety day mean: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(ninetyDayMean)")
-                    }
-                    if let recCount = flux.recCount {
-                        Text("Rec count: ")
-                            .bold()
-                            .foregroundColor(.black) + Text("\(recCount)")
-                    }
+            Group { () -> AnyView in
+                if showLoading {
+                    return AnyView(ProgressView())
+                } else {
+                    return AnyView(
+                        List(fluxs, id: \.self) { flux in
+                            VStack(alignment: .leading, spacing: 5) {
+                                if let timeTag = flux.timeTag {
+                                    Text("Time tag: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(dateFormatter.string(from: timeTag))")
+                                }
+                                if let frequency = flux.frequency {
+                                    Text("Frequency: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(frequency)")
+                                }
+                                if let fluxValue = flux.flux {
+                                    Text("Flux: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(fluxValue)")
+                                }
+                                if let reportingSchedule = flux.reportingSchedule {
+                                    Text("Reporting schedule: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(reportingSchedule)")
+                                }
+                                if let avgBeginDate = flux.avgBeginDate {
+                                    Text("Average begin date: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(dateFormatter.string(from: avgBeginDate))")
+                                }
+                                if let ninetyDayMean = flux.ninetyDayMean {
+                                    Text("Ninety day mean: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(ninetyDayMean)")
+                                }
+                                if let recCount = flux.recCount {
+                                    Text("Rec count: ")
+                                        .bold()
+                                        .foregroundColor(.black) + Text("\(recCount)")
+                                }
+                            }
+                            .foregroundColor(.gray)
+                            .padding(.vertical, 5)
+                        }
+                    )
                 }
-                .foregroundColor(.gray)
-                .padding(.vertical, 5)
             }
-            .onAppear(perform: {
-                fetchFluxs()
-            })
-            .navigationTitle("Flux")
+            .navigationBarTitle(Text("Flux"), displayMode: .automatic)
         }
+        .onAppear(perform: {
+            fetchFluxs()
+        })
         .alert(isPresented: $showAlert, content: {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .cancel())
         })
@@ -115,9 +124,13 @@ struct ContentView: View {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !showLoading {
+            showLoading = true
+        }
         
         URLSession.shared.dataTask(with: urlRequest) { (data, response, error) in
             DispatchQueue.main.async {
+                showLoading = false
                 if error == nil {
                     let decoder = JSONDecoder()
                     decoder.dateDecodingStrategy = .formatted(dateFormatter)
@@ -129,8 +142,13 @@ struct ContentView: View {
                             print(decodedList)
                         }
                     } catch {
+                        errorMessage = error.localizedDescription
+                        showAlert = true
                         print(error.localizedDescription)
                     }
+                } else {
+                    errorMessage = error?.localizedDescription ?? "Something went wrong"
+                    showAlert = true
                 }
             }
         }.resume()
